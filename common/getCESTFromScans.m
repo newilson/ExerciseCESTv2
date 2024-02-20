@@ -1,0 +1,117 @@
+function [CESTmap,B0corrp,B0corrn,inter] = getCESTFromScans(pars,CESTp,CESTn,B0map,B1map,roimask,opt,poly_deg)
+
+if nargin<6 || isempty(roimask), roimask = ones(size(B1map)); end
+if nargin<7, opt = 2; end
+if nargin<8, poly_deg = 2; end
+
+ppm = pars.CESTppm;
+ppmlist = pars.CESTppmlist;
+reps = size(CESTp,ndims(CESTp))/length(ppmlist);
+
+nd = ndims(CESTp);
+if nd==4
+    is3d = true;
+    CESTmap = zeros(size(CESTp,1),size(CESTp,2),size(CESTp,3),reps);
+else
+    is3d = false;
+    CESTmap = zeros(size(CESTp,1),size(CESTp,2),reps);
+end
+
+for ii=1:reps
+    if is3d
+        pimg = CESTp(:,:,:,1+(ii-1)*length(ppmlist):ii*length(ppmlist));
+        nimg = CESTn(:,:,:,1+(ii-1)*length(ppmlist):ii*length(ppmlist));
+    else
+        pimg = CESTp(:,:,1+(ii-1)*length(ppmlist):ii*length(ppmlist));
+        nimg = CESTn(:,:,1+(ii-1)*length(ppmlist):ii*length(ppmlist));
+    end
+    
+    if size(B0map,nd)==1
+        if opt>2
+            if is3d
+                pout = zeros(size(CESTp,1),size(CESTp,2),size(CESTp,3));
+                nout = zeros(size(CESTp,1),size(CESTp,2),size(CESTp,3));
+                for jj=1:size(CESTp,3)
+                    [pout(:,:,jj), nout(:,:,jj)] = mexB0correctedCESTimglfit(abs(ppm),ppmlist,pimg(:,:,jj),nimg(:,:,jj),B0map(:,:,jj),roimask(:,:,jj),poly_deg,opt);
+                end
+            else
+                [pout,nout] = mexB0correctedCESTimglfit(abs(ppm),ppmlist,pimg,nimg,B0map,double(roimask));
+            end
+        else
+            [pout,nout,pfit,nfit] = B0correctedCEST2Dimg_ASNW(abs(ppm),ppmlist,pimg,nimg,B0map,roimask,poly_deg,opt);
+            ppminterp = linspace(min(ppmlist(:)),max(ppmlist(:)),30);
+            pimginterp = NWpolyvalim(pfit,ppminterp);
+            nimginterp = NWpolyvalim(nfit,ppminterp);
+            inter.ppm = ppminterp;
+            inter.pimg = pimginterp;
+            inter.nimg = nimginterp;
+%             im1 = cat(3,flip(nimg,3),pimg);
+%             ax1 = cat(2,-flip(ppmlist),ppmlist);
+%             im2 = cat(3,flip(nimginterp,3),pimginterp);
+%             ax2 = cat(2,-flip(ppminterp),ppminterp);
+%             NWinteractiveCEST(im1,ax1,im2,ax2);            
+        end
+    else
+        if is3d
+            pB0 = B0map(:,:,:,:,1);
+            nB0 = B0map(:,:,:,:,2);
+            pB0 = pB0(:,:,:,1+(ii-1)*length(ppmlist):ii*length(ppmlist));
+            nB0 = nB0(:,:,:,1+(ii-1)*length(ppmlist):ii*length(ppmlist));
+            pout = zeros(size(CESTp,1),size(CESTp,2),size(CESTp,3));
+            nout = zeros(size(CESTp,1),size(CESTp,2),size(CESTp,3));
+            for jj=1:size(CESTp,3)
+                [pout(:,:,jj),nout(:,:,jj)] = mexB0correctedCEST2dmoco(abs(ppm),ppmlist,pimg(:,:,jj),nimg(:,:,jj),squeeze(pB0(:,:,jj,:)),squeeze(nB0(:,:,jj,:)),double(roimask(:,:,jj)));
+            end
+        else
+            pB0 = B0map(:,:,:,1);
+            nB0 = B0map(:,:,:,2);
+            pB0 = pB0(:,:,1+(ii-1)*length(ppmlist):ii*length(ppmlist));
+            nB0 = nB0(:,:,1+(ii-1)*length(ppmlist):ii*length(ppmlist));
+            [pout,nout] = mexB0correctedCEST2dmoco(abs(ppm),ppmlist,pimg,nimg,pB0,nB0,double(roimask));
+        end
+    end
+    
+    if is3d
+        B0corrp = zeros(size(CESTp,1),size(CESTp,2),size(CESTp,3));
+        B0corrn = zeros(size(CESTp,1),size(CESTp,2),size(CESTp,3));
+        for jj=1:size(CESTp,3)
+            B0corrp(:,:,jj) = anisodiff(pout(:,:,jj),20,50,0.03,1);
+            B0corrn(:,:,jj) = anisodiff(nout(:,:,jj),20,50,0.03,1);
+        end
+    else
+        B0corrp = anisodiff(pout,20,50,0.03,1);
+        B0corrn = anisodiff(nout,20,50,0.03,1);
+    end
+
+    if ppm>0
+        if isfield(pars,'norm') && ~isempty(pars.norm) && strcmpi(pars.norm,'m0') && isequal(size(pars.norm),size(B0corrn))
+            B0corrmap = 100 * (B0corrn - B0corrp) ./ (pars.norm + eps); % user supplied normalization image
+        elseif isfield(pars,'norm') && ~isempty(pars.norm) && isfield(pars,'normalize') && isequal(size(pars.norm),size(B0corrn))
+            B0corrmap = 100 * (B0corrn - B0corrp) ./ (pars.norm + eps);
+        elseif isfield(pars,'norm') && ~isempty(pars.norm) && ~strcmp(pars.norm,'neg')  && ~strcmpi(pars.norm,'m0') && isequal(size(pars.norm),size(B0corrn))
+            B0corrmap = 100 * (pars.norm - B0corrp) ./ (pars.norm + eps); % user supplied normalization image
+        else
+            B0corrmap = 100 * (B0corrn - B0corrp) ./ (B0corrn+eps); % default - negative normalization
+        end
+    else % interested in negative side
+        if isfield(pars,'norm') && ~isempty(pars.norm) && strcmpi(pars.normalize,'m0') && isequal(size(pars.norm),size(B0corrp))
+            B0corrmap = 100 * (B0corrp - B0corrn) ./ (pars.norm + eps); % user supplied normalization image
+        elseif isfield(pars,'norm') && ~isempty(pars.norm) && ~strcmp(pars.norm,'neg')  && ~strcmpi(pars.norm,'m0') && isequal(size(pars.norm),size(B0corrp))
+            B0corrmap = 100 * (pars.norm - B0corrn) ./ (pars.norm + eps); % user supplied normalization image
+        else
+            B0corrmap = 100 * (B0corrp - B0corrn) ./ (B0corrp+eps); % default - negative normalization
+        end
+    end
+
+    B0corrmap(~isfinite(B0corrmap)) = 0;
+    B1corrmap = roimask .* (B0corrmap ./ (B1map+eps)); % linear B1 correction
+    B1corrmap(~isfinite(B1corrmap)) = 0;
+    
+    if is3d
+        CESTmap(:,:,:,ii) = B1corrmap;
+    else
+        CESTmap(:,:,ii) = B1corrmap;
+    end
+end 
+
+
