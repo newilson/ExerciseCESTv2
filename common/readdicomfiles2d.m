@@ -13,7 +13,7 @@ for ifile = 1:nfiles
     ascstr = char(files(ifile).name);
     if ( ascstr(1) ~= '.' && ascstr(1) ~= '$')
         fullfilen = fullfile(pathname,ascstr);
-        if ( ~isdir(fullfilen) && isdicom( fullfilen) )
+        if ( ~isfolder(fullfilen) && isdicom( fullfilen) )
             i1 = i1+1;
             filenames{i1}= files(ifile).name;
         end
@@ -60,7 +60,7 @@ if( fopen(txtfilen,'r') == -1 )
     ftxt = fopen(txtfilen,'w');
     
     % NW
-    if isfield(tmphdr,'SharedFunctionalGroupsSequenc') && isfield(tmphdr.SharedFunctionalGroupsSequenc,'Item_1') && isfield(tmphdr.SharedFunctionalGroupsSequenc.Item_1,'Private_0021_10fe') && isa(tmphdr.SharedFunctionalGroupsSequence.Item_1.Private_0021_10fe.Item_1.Private_0021_1019,'uint8')
+    if isfield(tmphdr,'SharedFunctionalGroupsSequence') && isfield(tmphdr.SharedFunctionalGroupsSequence,'Item_1') && isfield(tmphdr.SharedFunctionalGroupsSequence.Item_1,'Private_0021_10fe') && isa(tmphdr.SharedFunctionalGroupsSequence.Item_1.Private_0021_10fe.Item_1.Private_0021_1019,'uint8')
         pvthdr = char(tmphdr.SharedFunctionalGroupsSequence.Item_1.Private_0021_10fe.Item_1.Private_0021_1019)';
     elseif isfield(tmphdr,'Private_0021_1019') && isa(tmphdr.Private_0021_1019,'uint8')
         pvthdr = char(tmphdr.Private_0021_1019)';

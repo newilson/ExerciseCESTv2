@@ -34,7 +34,7 @@ nx = size(images,1); ny = size(images,2);
 nfreq = hdr.reps/2;
 nz = size(images,3)/hdr.reps;
 if nz>1
-    images = reshape(images,[nx,ny,nz,nfreq*2]);
+    images = reshape(images,[nx,ny,nz,nfreq*2]); 
 end
 
 if nargin<3 || isempty(roimask)
@@ -51,9 +51,13 @@ end
 
 seqname = hdr.SeqName;
 swversion = hdr.swversion;
+preptypeInd = []; cestz2value = []; wassrvalue = [];
 if contains(swversion,'XA')
     if contains(seqname,'prepFLASH')
+        preptypeInd = 2;
         wipppmindex = 2;
+        cestz2value = 3;
+        wassrvalue = 4;
         WASSRpw = hdr.WIPlong(13);
         WASSRpw1 = hdr.WIPlong(14);
         WASSRb1 = hdr.WIPlong(16);
@@ -160,31 +164,56 @@ else
     end
 end
 
-ppmbegin = hdr.WIPdbl(wipppmindex+1);  % begin
-ppmend   = hdr.WIPdbl(wipppmindex+2);  % end
-ppmstep  = hdr.WIPdbl(wipppmindex+3);  % step
-if (ppmbegin > ppmend)
-    ppmstep = -ppmstep;
-end
-WASSRppmlist = ppmbegin:ppmstep:ppmend;
-if nz>1
-    posimages = images(:,:,:,1:2:end);
-    negimages = images(:,:,:,2:2:end);
-    B0map = zeros(nx,ny,nz);
-    for jj=1:nz
-        [tempB0,tempzspec,ppmint] = mexwassr_b0map2d_extoutNW(WASSRppmlist,squeeze(posimages(:,:,jj,:)),squeeze(negimages(:,:,jj,:)),double(squeeze(roimask(:,:,jj))));
-        tempB0 = anisodiff(tempB0,20,50,0.03,1);
-        B0map(:,:,jj) = tempB0;
-        zspecint(:,:,jj,:) = tempzspec; FIX THIS
-    end
-else
-    posimages = images(:,:,1:2:end);
-    negimages = images(:,:,2:2:end);
-    % B0map = mexwassr_b0map2d(WASSRppmlist, posimages, negimages, double(roimask)); % crashes without appropriate roimask
-    [B0map, zspecint, ppmint] = mexwassr_b0map2d_extoutNW(WASSRppmlist, posimages, negimages, double(roimask)); % crashes without appropriate roimask
-    B0map = anisodiff(B0map,20,50,0.03,1);
-end
+if ~isempty(preptypeInd) && hdr.WIPlong(preptypeInd)==wassrvalue && hdr.reps==9 % for fixed WASSR scans
 
+    ppmstep  = hdr.WIPdbl(wipppmindex+3);  % step
+    WASSRppmlist = 0:ppmstep:4*ppmstep;
+    if nz>1
+        posimages = images(:,:,:,end-4:end);
+        negimages = flip(images(:,:,:,1:5),ndims(images));
+        B0map = zeros(nx,ny,nz);
+        for jj=1:nz
+            [tempB0,tempzspec,ppmint] = mexwassr_b0map2d_extoutNW(WASSRppmlist,squeeze(posimages(:,:,jj,:)),squeeze(negimages(:,:,jj,:)),double(squeeze(roimask(:,:,jj))));
+            tempB0 = anisodiff(tempB0,20,50,0.03,1);
+            B0map(:,:,jj) = tempB0;
+            zspecint(:,:,jj,:) = tempzspec; % FIX THIS
+        end
+    else
+        posimages = images(:,:,end-4:end);
+        negimages = flip(images(:,:,1:5),ndims(images));
+        % B0map = mexwassr_b0map2d(WASSRppmlist, posimages, negimages, double(roimask)); % crashes without appropriate roimask
+        [B0map, zspecint, ppmint] = mexwassr_b0map2d_extoutNW(WASSRppmlist, posimages, negimages, double(roimask)); % crashes without appropriate roimask
+        B0map = anisodiff(B0map,20,50,0.03,1);
+    end
+
+else
+
+    ppmbegin = hdr.WIPdbl(wipppmindex+1);  % begin
+    ppmend   = hdr.WIPdbl(wipppmindex+2);  % end
+    ppmstep  = hdr.WIPdbl(wipppmindex+3);  % step
+    if (ppmbegin > ppmend)
+        ppmstep = -ppmstep;
+    end
+    WASSRppmlist = ppmbegin:ppmstep:ppmend;
+    if nz>1
+        posimages = images(:,:,:,1:2:end);
+        negimages = images(:,:,:,2:2:end);
+        B0map = zeros(nx,ny,nz);
+        for jj=1:nz
+            [tempB0,tempzspec,ppmint] = mexwassr_b0map2d_extoutNW(WASSRppmlist,squeeze(posimages(:,:,jj,:)),squeeze(negimages(:,:,jj,:)),double(squeeze(roimask(:,:,jj))));
+            tempB0 = anisodiff(tempB0,20,50,0.03,1);
+            B0map(:,:,jj) = tempB0;
+            zspecint(:,:,jj,:) = tempzspec; % FIX THIS
+        end
+    else
+        posimages = images(:,:,1:2:end);
+        negimages = images(:,:,2:2:end);
+        % B0map = mexwassr_b0map2d(WASSRppmlist, posimages, negimages, double(roimask)); % crashes without appropriate roimask
+        [B0map, zspecint, ppmint] = mexwassr_b0map2d_extoutNW(WASSRppmlist, posimages, negimages, double(roimask)); % crashes without appropriate roimask
+        B0map = anisodiff(B0map,20,50,0.03,1);
+    end
+
+end
 
 B0map( abs(B0map) > B0thresh ) = 0;
 roimask( abs(B0map) > B0thresh ) = 0;
