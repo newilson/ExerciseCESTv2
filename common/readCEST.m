@@ -53,8 +53,8 @@ end
                     
 seqname = hdr.SeqName;
 swversion = hdr.swversion;
-shotTRms = [];
-if contains(swversion,'XA') 
+shotTRms = [];			  
+if contains(swversion,'XA')
     if contains(seqname,'prepFLASH')
         wipppmindex = 2;
         CESTpw = hdr.WIPlong(13);
@@ -63,9 +63,9 @@ if contains(swversion,'XA')
         CESTdc = hdr.WIPdbl(1);  
         reqreps = hdr.WIPlong(9);
         mocoreps = hdr.WIPlong(11);
-        shotTRms = hdr.WIPlong(8); % add this for other baselines
+		shotTRms = hdr.WIPlong(8); % add this for other baselines													 
     else
-        error('unknown XA20 sequence');
+        error('unknown XA sequence');
     end
 elseif ( strfind( swversion, 'VD13A' ) )
     if (~strfind(seqname,'cest_flash'))
@@ -127,6 +127,16 @@ elseif ( contains( swversion, 'VD13D' ) || contains(swversion,'VE11') || contain
         CESTdc = hdr.WIPdbl(1);
         reqreps = hdr.WIPlong(10);
         mocoreps = hdr.WIPlong(11);
+    elseif strcmp(seqname,'prep_tfl_FatSat')
+        wipppmindex = 2;
+        prepmodeindex = nan;
+        cestzvalue = 1e5;
+        CESTpw = hdr.WIPlong(11);
+        CESTpw1 = hdr.WIPlong(12);
+        CESTb1 = hdr.WIPlong(14);
+        CESTdc = hdr.WIPdbl(1);
+        reqreps = hdr.WIPlong(10);
+        mocoreps = 1;  
     else
         wipppmindex = input(' Type in the value for wipppmindex : ');
         prepmodeindex = input(' Type in the value for prepmodeindex : ');
@@ -223,5 +233,6 @@ pars.reqreps = reqreps;
 pars.mocoreps = mocoreps;
 pars.CESTppmlist = CESTppmlist;
 pars.shotTRms = shotTRms; 
+pars.is3d = is3d;
 
 end

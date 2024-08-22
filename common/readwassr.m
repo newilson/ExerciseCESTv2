@@ -63,7 +63,7 @@ if contains(swversion,'XA')
         WASSRb1 = hdr.WIPlong(16);
         WASSRdc = hdr.WIPdbl(1);  
     else
-        error('unknown XA20 sequence');
+        error('unknown XA sequence');
     end
 elseif ( strfind( swversion, 'VD13A' ) )
     wipppmindex = 3;
