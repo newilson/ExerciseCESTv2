@@ -107,7 +107,7 @@ elseif ( contains( swversion, 'VD13D' ) || contains(swversion,'VE11') || contain
         CESTdc = hdr.WIPdbl(1);
         reqreps = hdr.WIPlong(10); % NW iB0
         mocoreps = hdr.WIPlong(12); % NW iB0
-    elseif strcmp(seqname,'prep_tfl')
+    elseif strcmp(seqname,'prep_tfl') || strcmp(seqname, 'prep_tfl_latest')
         wipppmindex = 2;
         prepmodeindex = 2;
         cestzvalue = 1e5;
@@ -117,6 +117,7 @@ elseif ( contains( swversion, 'VD13D' ) || contains(swversion,'VE11') || contain
         CESTdc = hdr.WIPdbl(1);
         reqreps = hdr.WIPlong(9);
         mocoreps = 1;  
+        shotTRms = hdr.WIPlong(8); % add this for other baselines
     elseif strcmp(seqname,'prepCV') || strcmp(seqname,'prep_tfl_nus')
         wipppmindex = 2;
         prepmodeindex = 2;

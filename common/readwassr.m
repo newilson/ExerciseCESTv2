@@ -93,7 +93,7 @@ elseif ( contains( swversion, 'VD13D' ) || contains(swversion,'VE11') || contain
         WASSRpw1 = 0.001*hdr.WIPlong(16); % iB0
         WASSRb1 = hdr.WIPlong(18); % iB0
         WASSRdc = hdr.WIPdbl(1);
-    elseif strcmp(seqname,'prep_tfl')
+    elseif strcmp(seqname,'prep_tfl') || strcmp(seqname,'prep_tfl_latest')
         wipppmindex = 2;
         prepmodeindex = 2;
         cestzvalue = 1e5;

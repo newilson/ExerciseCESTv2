@@ -1,7 +1,7 @@
 CESTppm,1.8
-B0tol,0.4
+B0tol,0.3
 B1tol,0.6
-filt,"[128,112,24]"
+filt,"[120,100,24]"
 myfun,"@(a,t) (t>0).*(a(1)*exp(-t/a(2))+a(3)) + (t<=0).*a(3)"
 par0,"[8,120,6]"
 parnames,"{'Increase','Recovery','Baseline'}"
