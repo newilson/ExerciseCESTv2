@@ -91,39 +91,39 @@ hdr.ndim = 2; % initialization
 
 fid2 = fopen(txtfilen,'r');
 str1 = fgetl(fid2);
-while( ~isempty(str1) && isempty( strfind(str1,'ASCCONV END') ) )
+while( ~isempty(str1) &&  ~contains(str1,'ASCCONV END')  )
     str1 = fgetl(fid2);
     
     tnamestr = 'tSequenceFileName';
-    if (~isempty(strfind(str1,tnamestr)))
+    if (contains(str1,tnamestr))
         tindex1 = strfind(str1,'""')+2;
         tindex2 = length(str1)-2;
-        tname = str1(tindex1:tindex2);
+        tname = str1(tindex1(1):tindex2);
         hdr.SeqName = tname;
     end
     
     tnamestr = 'tProtocolName';
-    if (~isempty(strfind(str1,tnamestr)))
+    if (contains(str1,tnamestr))
         tindex1 = strfind(str1,'""')+2;
         tindex2 = length(str1)-2;
-        tname = str1(tindex1:tindex2);
+        tname = str1(tindex1(1):tindex2);
         tname = regexprep(tname,'+AF8-','-');
         hdr.ProtocolName = tname;
     end
     
     tnamestr = 'sProtConsistencyInfo.tBaselineString';
-    if (~isempty(strfind(str1,tnamestr)))
+    if (contains(str1,tnamestr))
         tindex1 = strfind(str1,'""')+2;
         tindex2 = length(str1)-2;
-        tname = str1(tindex1:tindex2);
+        tname = str1(tindex1(1):tindex2);
         hdr.swversion = tname;
     end
     
     tnamestr = 'sProtConsistencyInfo.tMeasuredBaselineString'; % NW added 11/07/16
-    if (~isempty(strfind(str1,tnamestr)))
+    if (contains(str1,tnamestr))
         tindex1 = strfind(str1,'""')+2;
         tindex2 = length(str1)-2;
-        tname = str1(tindex1:tindex2);
+        tname = str1(tindex1(1):tindex2);
         if isfield(hdr,'swversion') % already exists
             warning('multiple definitions of software version')
             disp(hdr.swversion)
@@ -133,18 +133,18 @@ while( ~isempty(str1) && isempty( strfind(str1,'ASCCONV END') ) )
     end
     
     tnamestr = 'sTXSPEC.asNucleusInfo[0].tNucleus';
-    if (~isempty(strfind(str1,tnamestr)))
+    if (contains(str1,tnamestr))
         tindex1 = strfind(str1,'""')+2;
         tindex2 = length(str1)-2;
-        tname = str1(tindex1:tindex2);
+        tname = str1(tindex1(1):tindex2);
         hdr.Nucleus = tname;
-        if (~isempty(strfind(tname,'1H')))
+        if (contains(tname,'1H'))
             hdr.gamma = 42.5756;
-        elseif (~isempty(strfind(tname,'23N')))
+        elseif (contains(tname,'23N'))
             hdr.gamma = 11.2620;
-        elseif (~isempty(strfind(tname,'17O')))
+        elseif (contains(tname,'17O'))
             hdr.gamma = 5.7716;
-        elseif (~isempty(strfind(tname,'13C')))
+        elseif (contains(tname,'13C'))
             hdr.gamma = 10.7063;
         else
             hdr.gamma = 42.5756;
@@ -152,114 +152,114 @@ while( ~isempty(str1) && isempty( strfind(str1,'ASCCONV END') ) )
     end
     
     tnamestr = 'sTXSPEC.asNucleusInfo[0].lFrequency';
-    if (~isempty(strfind(str1,tnamestr)))
+    if (contains(str1,tnamestr))
         tindex1 = strfind(str1,'=')+1;
-        tname = str1(tindex1:numel(str1));
+        tname = str1(tindex1(1):numel(str1));
         hdr.sf = (sscanf(tname,'%i',1))* 1.0e-6;
     end
 
     % NW 
     tnamestr = 'sProtConsistencyInfo.flNominalB0';
-    if (~isempty(strfind(str1,tnamestr)))
+    if (contains(str1,tnamestr))
         tindex1 = strfind(str1,'=')+1;
-        tname = str1(tindex1:numel(str1));
+        tname = str1(tindex1(1):numel(str1));
         hdr.B0 = (sscanf(tname,'%f',1));
     end
     
     tnamestr = 'sRXSPEC.alDwellTime[0]';
-    if (~isempty(strfind(str1,tnamestr)))
+    if (contains(str1,tnamestr))
         tindex1 = strfind(str1,'=')+1;
-        tname = str1(tindex1:numel(str1));
+        tname = str1(tindex1(1):numel(str1));
         hdr.dwus = 0.001*(sscanf(tname,'%i',1));
         hdr.sw = 1.0e6 / hdr.dwus;
     end
     
     tnamestr = 'lContrasts';
-    if (~isempty(strfind(str1,tnamestr)))
+    if (contains(str1,tnamestr))
         tindex1 = strfind(str1,'=')+1;
-        tname = str1(tindex1:numel(str1));
+        tname = str1(tindex1(1):numel(str1));
         hdr.contrasts = sscanf(tname,'%i',1);
     end
     
     tnamestr = 'alTR[0]';
-    if (~isempty(strfind(str1,tnamestr)))
+    if (contains(str1,tnamestr))
         tindex1 = strfind(str1,'=')+1;
-        tname = str1(tindex1:numel(str1));
+        tname = str1(tindex1(1):numel(str1));
         hdr.TR = sscanf(tname,'%i',1);
     end
     
     for iTE = 1:10
         tnamestr = sprintf('alTE[%i]',iTE-1);
-        if (~isempty(strfind(str1,tnamestr)))
+        if (contains(str1,tnamestr))
             tindex1 = strfind(str1,'=')+1;
-            tname = str1(tindex1:numel(str1));
+            tname = str1(tindex1(1):numel(str1));
             hdr.TEms(iTE) = double(sscanf(tname,'%i',1))*0.001;
             hdr.echoes = iTE;
         end
     end
     
     tnamestr = 'sSliceArray.asSlice[0].dThickness';
-    if (~isempty(strfind(str1,tnamestr)))
+    if (contains(str1,tnamestr))
         tindex1 = strfind(str1,'=')+1;
-        tname = str1(tindex1:numel(str1));
+        tname = str1(tindex1(1):numel(str1));
         hdr.slthk = (sscanf(tname,'%i',1));
     end
     
     tnamestr = 'sSliceArray.asSlice[0].dPhaseFOV';
-    if (~isempty(strfind(str1,tnamestr)))
+    if (contains(str1,tnamestr))
         tindex1 = strfind(str1,'=')+1;
-        tname = str1(tindex1:numel(str1));
+        tname = str1(tindex1(1):numel(str1));
         hdr.phfov = (sscanf(tname,'%i',1));
     end
     
     tnamestr = 'sSliceArray.asSlice[0].dReadoutFOV';
-    if (~isempty(strfind(str1,tnamestr)))
+    if (contains(str1,tnamestr))
         tindex1 = strfind(str1,'=')+1;
-        tname = str1(tindex1:numel(str1));
+        tname = str1(tindex1(1):numel(str1));
         hdr.rdfov = (sscanf(tname,'%i',1));
     end
     
     tnamestr = 'sSliceArray.lSize';
-    if (~isempty(strfind(str1,tnamestr)))
+    if (contains(str1,tnamestr))
         tindex1 = strfind(str1,'=')+1;
-        tname = str1(tindex1:numel(str1));
+        tname = str1(tindex1(1):numel(str1));
         hdr.nslices = sscanf(tname,'%i',1);
     end
     
     tnamestr = 'sKSpace.lBaseResolution';
-    if (~isempty(strfind(str1,tnamestr)))
+    if (contains(str1,tnamestr))
         tindex1 = strfind(str1,'=')+1;
-        tname = str1(tindex1:numel(str1));
+        tname = str1(tindex1(1):numel(str1));
         hdr.nx = sscanf(tname,'%i',1);
     end
     
     tnamestr = 'sKSpace.lPhaseEncodingLines';
-    if (~isempty(strfind(str1,tnamestr)))
+    if (contains(str1,tnamestr))
         tindex1 = strfind(str1,'=')+1;
-        tname = str1(tindex1:numel(str1));
+        tname = str1(tindex1(1):numel(str1));
         hdr.ny = sscanf(tname,'%i',1);
     end
     
     tnamestr = 'sKSpace.lImagesPerSlab';
-    if (~isempty(strfind(str1,tnamestr)))
+    if (contains(str1,tnamestr))
         tindex1 = strfind(str1,'=')+1;
-        tname = str1(tindex1:numel(str1));
+        tname = str1(tindex1(1):numel(str1));
         hdr.nz = sscanf(tname,'%i',1);
     end
     
     tnamestr = 'sKSpace.lRadialViews';
-    if (~isempty(strfind(str1,tnamestr)))
+    if (contains(str1,tnamestr))
         tindex1 = strfind(str1,'=')+1;
-        tname = str1(tindex1:numel(str1));
+        tname = str1(tindex1(1):numel(str1));
         hdr.nrad = sscanf(tname,'%i',1);
     end
     
 %     hdr.ndim = 2;
     tnamestr = 'sKSpace.ucDimension';
-    if (~isempty(strfind(str1,tnamestr)))
+    if (contains(str1,tnamestr))
         tindex1 = strfind(str1,'=')+1;
-        tname = str1(tindex1:numel(str1));
-        if (~isempty(strfind(tname,'0x')))
+        tname = str1(tindex1(1):numel(str1));
+        if (contains(tname,'0x'))
             tname1 = tname(4:numel(tname));
             ndimflag = hex2dec(tname1);
             hdr.ndim = 1;
@@ -273,10 +273,10 @@ while( ~isempty(str1) && isempty( strfind(str1,'ASCCONV END') ) )
     end
     
     tnamestr = 'sKSpace.ucTrajectory';
-    if (~isempty(strfind(str1,tnamestr)))
+    if (contains(str1,tnamestr))
         tindex1 = strfind(str1,'=')+1;
-        tname = str1(tindex1:numel(str1));
-        if (~isempty(strfind(tname,'0x')))
+        tname = str1(tindex1(1):numel(str1));
+        if (contains(tname,'0x'))
             tname1 = tname(4:numel(tname));
             traj = hex2dec(tname1);
         else
@@ -290,40 +290,40 @@ while( ~isempty(str1) && isempty( strfind(str1,'ASCCONV END') ) )
     end
     
     tnamestr = 'lAverages';
-    if (~isempty(strfind(str1,tnamestr)))
+    if (contains(str1,tnamestr))
         tindex1 = strfind(str1,'=')+1;
-        tname = str1(tindex1:numel(str1));
+        tname = str1(tindex1(1):numel(str1));
         hdr.averages = (sscanf(tname,'%i',1));
     end
     
     tnamestr = 'lRepetitions';
-    if (~isempty(strfind(str1,tnamestr)))
-        if ( isempty(strfind(str1,'alRepetitions')) )
+    if (contains(str1,tnamestr))
+        if ( ~contains(str1,'alRepetitions') )
             tindex1 = strfind(str1,'=')+1;
-            tname = str1(tindex1:numel(str1));
+            tname = str1(tindex1(1):numel(str1));
             hdr.reps = (sscanf(tname,'%i',1)) + 1;
         end
     end
     
     tnamestr = sprintf('sWiPMemBlock.alFree');
-    if ( ~isempty(strfind(str1,tnamestr)) )
+    if ( contains(str1,tnamestr) )
         for ilong = 1:64
             tnamestr = sprintf('sWiPMemBlock.alFree[%i]',ilong-1);
-            if (~isempty(strfind(str1,tnamestr)))
+            if (contains(str1,tnamestr))
                 tindex1 = strfind(str1,'=')+1;
-                tname = str1(tindex1:numel(str1));
+                tname = str1(tindex1(1):numel(str1));
                 value = sscanf(tname,'%f',1);
                 hdr.WIPlong(ilong) = value;
             end
         end
     end
     tnamestr = sprintf('sWiPMemBlock.adFree');
-    if ( ~isempty(strfind(str1,tnamestr)) )
+    if ( contains(str1,tnamestr) )
         for idbl = 1:16
             tnamestr = sprintf('sWiPMemBlock.adFree[%i]',idbl-1);
-            if (~isempty(strfind(str1,tnamestr)))
+            if (contains(str1,tnamestr))
                 tindex1 = strfind(str1,'=')+1;
-                tname = str1(tindex1:numel(str1));
+                tname = str1(tindex1(1):numel(str1));
                 value = sscanf(tname,'%f',1);
                 hdr.WIPdbl(idbl) = value;
             end
@@ -331,24 +331,24 @@ while( ~isempty(str1) && isempty( strfind(str1,'ASCCONV END') ) )
     end
 
     tnamestr = sprintf('sWipMemBlock.alFree');
-    if ( ~isempty(strfind(str1,tnamestr)) )
+    if ( contains(str1,tnamestr) )
         for ilong = 1:64
             tnamestr = sprintf('sWipMemBlock.alFree[%i]',ilong-1);
-            if (~isempty(strfind(str1,tnamestr)))
+            if (contains(str1,tnamestr))
                 tindex1 = strfind(str1,'=')+1;
-                tname = str1(tindex1:numel(str1));
+                tname = str1(tindex1(1):numel(str1));
                 value = sscanf(tname,'%f',1);
                 hdr.WIPlong(ilong) = value;
             end
         end
     end
     tnamestr = sprintf('sWipMemBlock.adFree');
-    if ( ~isempty(strfind(str1,tnamestr)) )
+    if ( contains(str1,tnamestr) )
         for idbl = 1:16
             tnamestr = sprintf('sWipMemBlock.adFree[%i]',idbl-1);
-            if (~isempty(strfind(str1,tnamestr)))
+            if (contains(str1,tnamestr))
                 tindex1 = strfind(str1,'=')+1;
-                tname = str1(tindex1:numel(str1));
+                tname = str1(tindex1(1):numel(str1));
                 value = sscanf(tname,'%f',1);
                 hdr.WIPdbl(idbl) = value;
             end
