@@ -2,6 +2,14 @@ function [B1map,hdr,alpha,images,pathname1] = readB1(pathname1,dofilt,roimask)
 
 if nargin<1 || isempty(pathname1)
     [hdr,images,dicomhdr,pathname1] = readdicomfiles2d;
+elseif isstruct(pathname1)
+    hdr = pathname1.hdr;
+    images = pathname1.images;
+    if isfield(pathname1,'dicomhdr')
+        dicomhdr = pathname1.dicomhdr;
+    else
+        dicomhdr = [];
+    end
 else
     [hdr,images,dicomhdr] = readdicomfiles2d(pathname1);
 end
@@ -18,7 +26,7 @@ if nargin<3 || isempty(roimask)
     end
 end
 
-if contains(lower(pathname1),'flip30') && isequal(size(images,3),1)
+if isstr(pathname1) && contains(lower(pathname1),'flip30') && isequal(size(images,3),1)
     alpha = pi/6.0;
     pathparts = strsplit(pathname1,'_');
     for jj=1:length(pathparts)
@@ -52,7 +60,7 @@ if contains(lower(pathname1),'flip30') && isequal(size(images,3),1)
     else
         B1map = calc_B1map(images(:,:,1),images(:,:,2),ones(size(squeeze(images(:,:,1)))),alpha);
     end
-elseif contains(lower(pathname1),'flip60') && isequal(size(images,3),1)
+elseif isstr(pathname1) && contains(lower(pathname1),'flip60') && isequal(size(images,3),1)
     alpha = pi/6.0;
     pathparts = strsplit(pathname1,'_');
     for jj=1:length(pathparts)

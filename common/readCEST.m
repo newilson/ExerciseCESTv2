@@ -9,6 +9,14 @@ elseif iscell(pathname1) % check this
         [hdr,temp,dicomhdr] = readdicomfiles2d(pathname1{jj});
         images = cat(3,images,temp);
     end
+elseif isstruct(pathname1)
+    hdr = pathname1.hdr;
+    images = pathname1.images;
+    if isfield(pathname1,'dicomhdr')
+        dicomhdr = pathname1.dicomhdr;
+    else
+        dicomhdr = [];
+    end
 else
     [hdr,images,dicomhdr] = readdicomfiles2d(pathname1);
 end

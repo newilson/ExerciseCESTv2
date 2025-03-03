@@ -5,6 +5,14 @@ if nargin<2 || isempty(B0thresh), B0thresh = 1.0; end
 if nargin<1 || isempty(pathname)
     [hdr,images,dicomhdr,pathname] = readdicomfiles2d;
     disp(pathname);
+elseif isstruct(pathname)
+    hdr = pathname.hdr;
+    images = pathname.images;
+    if isfield(pathname,'dicomhdr')
+        dicomhdr = pathname.dicomhdr;
+    else
+        dicomhdr = [];
+    end
 else
     [hdr,images,dicomhdr] = readdicomfiles2d(pathname);
 end

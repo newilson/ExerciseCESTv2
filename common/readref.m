@@ -2,6 +2,14 @@ function [refimage,hdr,dicomhdr,refimageb,mask,biasscale,pathname] = readref(pat
 
 if nargin<1 || isempty(pathname)
     [hdr, refimage,dicomhdr,pathname] = readdicomfiles2d;
+elseif isstruct(pathname)
+    hdr = pathname.hdr;
+    refimage = pathname.refimage;
+    if isfield(pathname,'dicomhdr')
+        dicomhdr = pathname.dicomhdr;
+    else
+        dicomhdr = [];
+    end
 else
     [hdr,refimage,dicomhdr] = readdicomfiles2d(pathname);
 end
