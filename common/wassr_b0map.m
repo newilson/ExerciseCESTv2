@@ -27,9 +27,9 @@ function [B0map, Zspec_int, ppm_int] = wassr_b0map(ppmlist, posimage, negimage, 
     nelem = H * W * Z;
 
     doParFor = false;
-%     if ~isempty(gcp('nocreate')) || Z>1
-%         doParFor = true;
-%     end
+    if ~isempty(gcp('nocreate')) || Z>1
+        doParFor = true;
+    end
 
     if nargin<4 || isempty(mask) || size(mask,1)~=H || size(mask,2)~=W || size(mask,3)~=Z
         mask = ones(H,W,Z);
