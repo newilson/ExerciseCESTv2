@@ -25,8 +25,17 @@ if nargin<2, dofilt = false; end
 if dofilt
     si = size(images);
     if length(dofilt)==3
+        if dofilt(1)~=si(1)
+            dofilt(1) = si(1);
+        end
         filt = repmat(NWSiemensRawFilter2d(dofilt(1),dofilt(2),dofilt(3)),[1 1 si(3)]);
     elseif length(dofilt)==6
+        if dofilt(1)~=si(1)
+            dofilt(1) = si(1);
+        end
+        if dofilt(2)~=si(1)
+            dofilt(2) = si(1);
+        end
         filt = repmat(NWSiemensRawFilter2d(dofilt(1:2),dofilt(3:4),dofilt(5:6)),[1 1 si(3)]);
     else
         filt = repmat(NWSiemensRawFilter2d(si(1:2),si(1:2),si(1:2)/2),[1 1 si(3)]);
