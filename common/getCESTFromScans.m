@@ -185,7 +185,6 @@ for ii=1:reps
             else
                 B0corrmap = 100 * (B0corrn - B0corrp) ./ (B0corrn+eps); % default - negative normalization
                 pars.norm = 'neg';
-                pars.normimg = B0corrn;
             end
         else % interested in negative side
             if isfield(pars,'norm') && ~isempty(pars.norm) && strcmpi(pars.norm,'m0') && isfield(pars,'normimg') && isequal(size(pars.normimg),size(B0corrn))
@@ -195,7 +194,6 @@ for ii=1:reps
             else
                 B0corrmap = 100 * (B0corrp - B0corrn) ./ (B0corrp+eps); % default - negative normalization
                 pars.norm = 'neg';
-                pars.normimg = B0corrp;
             end
         end
 
@@ -219,7 +217,6 @@ for ii=1:reps
             else
                 B0corrmap = 100 * (B0corrn - B0corrp) ./ (B0corrn+eps); % default - negative normalization
                 pars.norm = 'neg';
-                pars.normimg = B0corrn;
             end
         else % interested in negative side
             if isfield(pars,'norm') && ~isempty(pars.norm) && strcmpi(pars.norm,'m0') && isfield(pars,'normimg') && isequal(size(pars.normimg),size(B0corrn))
@@ -229,7 +226,6 @@ for ii=1:reps
             else
                 B0corrmap = 100 * (B0corrp - B0corrn) ./ (B0corrp+eps); % default - negative normalization
                 pars.norm = 'neg';
-                pars.normimg = B0corrp;
             end
         end
 
