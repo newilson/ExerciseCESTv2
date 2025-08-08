@@ -395,7 +395,12 @@ for irep = 1:nfiles % NW
                 dicomhdr = dicominfo(fullfilen);
             end
             A = double(dicomread(fullfilen));
-            images(:,:,irep) = A;
+            [~,fname,~] = fileparts(fullfilen);
+            if isnan(str2double(fname)) % XA names files by rep number (NW)
+                images(:,:,irep) = A;
+            else
+                images(:,:,str2double(fname)) = A;
+            end
         end
 end % for irep
 close(hwaitbar);
