@@ -48,9 +48,9 @@ end
 % end
 
 if ( strfind(fullfilen,'.dcm') )
-    txtfilen = regexprep(fullfilen,'.dcm','.txt');
+    txtfilen = regexprep(fullfilen,'\.dcm','\.txt');
 elseif ( strfind(fullfilen,'.IMA') )
-    txtfilen = regexprep(fullfilen,'.IMA','.txt');
+    txtfilen = regexprep(fullfilen,'\.IMA','\.txt');
 else
     txtfilen = [pathname filesep 'PVTHDR.txt'];
 end
@@ -202,23 +202,52 @@ while( ~isempty(str1) &&  ~contains(str1,'ASCCONV END')  )
     if (contains(str1,tnamestr))
         tindex1 = strfind(str1,'=')+1;
         tname = str1(tindex1(1):numel(str1));
-        hdr.slthk = (sscanf(tname,'%i',1));
+        hdr.slthk = (sscanf(tname,'%f',1));
     end
     
     tnamestr = 'sSliceArray.asSlice[0].dPhaseFOV';
     if (contains(str1,tnamestr))
         tindex1 = strfind(str1,'=')+1;
         tname = str1(tindex1(1):numel(str1));
-        hdr.phfov = (sscanf(tname,'%i',1));
+        hdr.phfov = (sscanf(tname,'%f',1));
     end
     
     tnamestr = 'sSliceArray.asSlice[0].dReadoutFOV';
     if (contains(str1,tnamestr))
         tindex1 = strfind(str1,'=')+1;
         tname = str1(tindex1(1):numel(str1));
-        hdr.rdfov = (sscanf(tname,'%i',1));
+        hdr.rdfov = (sscanf(tname,'%f',1));
+    end
+
+    % NW
+    tnamestr = 'sSliceArray.asSlice[0].sPosition.dSag';
+    if (contains(str1,tnamestr))
+        tindex1 = strfind(str1,'=')+1;
+        tname = str1(tindex1:numel(str1));
+        hdr.posSag = (sscanf(tname,'%f',1));
+    end
+
+    tnamestr = 'sSliceArray.asSlice[0].sPosition.dCor';
+    if (contains(str1,tnamestr))
+        tindex1 = strfind(str1,'=')+1;
+        tname = str1(tindex1:numel(str1));
+        hdr.posCor = (sscanf(tname,'%f',1));
+    end
+
+    tnamestr = 'sSliceArray.asSlice[0].sPosition.dTra';
+    if (contains(str1,tnamestr))
+        tindex1 = strfind(str1,'=')+1;
+        tname = str1(tindex1:numel(str1));
+        hdr.posTra = (sscanf(tname,'%f',1));
     end
     
+    tnamestr = 'sSliceArray.asSlice[0].dInPlaneRot';
+    if (contains(str1,tnamestr))
+        tindex1 = strfind(str1,'=')+1;
+        tname = str1(tindex1:numel(str1));
+        hdr.rot = (sscanf(tname,'%f',1));
+    end
+
     tnamestr = 'sSliceArray.lSize';
     if (contains(str1,tnamestr))
         tindex1 = strfind(str1,'=')+1;

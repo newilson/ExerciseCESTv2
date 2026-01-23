@@ -409,10 +409,10 @@ updatePlot
             if ~isempty(im2)
                 if iscell(im2)
                     for aa=1:nim2
-                        vals = cat(3,vals,im2{aa}(pix(2),pix(1),slice,:));
+                        vals = cat(4,vals,im2{aa}(pix(2),pix(1),slice,:));
                     end
                 else
-                    vals = cat(3,vals,im2(pix(2),pix(1),slice,:));
+                    vals = cat(4,vals,im2(pix(2),pix(1),slice,:));
                 end
             end
             vals = vals(:);

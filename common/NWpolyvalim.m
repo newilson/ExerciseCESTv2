@@ -45,8 +45,14 @@ end
 
 % Horner's method
 Y = 0*X;
+S.type = '()';
+S.subs = repmat({':'},1,ndims(p));
 for ii=1:ndeg+1
-    Y = Y.*X + squeeze(p(ii,:,:,:,:));
+    S.subs{1} = ii;
+    temp = subsref(p,S);
+    temp = permute(temp,[2:ndims(temp) 1]);
+    % Y = Y.*X + squeeze(p(ii,:,:,:,:,:,:,:,:,:));
+    Y = Y.*X + temp;
 end
 
 if nargout>1
