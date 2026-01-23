@@ -1,4 +1,4 @@
-function [B1map,pars,hdr,alphaVec,images,B1fit,pathname1] = readB1reps(pathname1,dofilt,roimask)
+function [B1map,pars,hdr,alphaVec,images,B1fit,alphaInterp,pathname1] = readB1reps(pathname1,dofilt,roimask,doLinFit)
 
 nInterp = 50;
 
@@ -15,7 +15,7 @@ elseif isstruct(pathname1)
 else
     [hdr,images,dicomhdr] = readdicomfiles2d(pathname1);
 end
-if nargin<2, dofilt = false; end
+if nargin<2 || isempty(dofilt), dofilt = false; end
 
 if hdr.WIPlong(2)~=16
     warning('wrong sequence? double check')
@@ -28,13 +28,24 @@ if actreps~=hdr.reps
     warning('repetition calculations do not match')
 end
 
-doLinFit = false;
 % if actreps==reqreps+1
 %     doLinFit = true;
 % end
 
 nx = size(images,1); ny = size(images,2);
 nz = size(images,3)/hdr.reps;
+
+if nargin<4 || isempty(doLinFit)
+    if nz>1
+        doLinFit = true;
+    else
+        doLinFit = false;
+    end
+end
+
+if nz>1
+    images = reshape(images,nx,ny,nz,hdr.reps);
+end
 
 if nargin<3 || isempty(roimask)
     % take MASK from first image which will have highest signal
@@ -91,28 +102,68 @@ if doLinFit
     % Uses same model as nonlinear fit except that amplitude is known from the
     % signal when alpha = 0. Then acos(Sig/Amp) = B1rel x alpha where B1rel
 
-    ind = find(alphaVec/1.5 > pi/2); % don't expect relative B1 > 1.5
-    if isempty(ind)
-        p = NWpolyfitim(1,alphaVec,acos(images_sc));
+    images_sc = min(images_sc,1); % nothing bigger than 1 - could be a problem in noisy voxels, doesn't do anything for high SNR voxels -> forces acos to be real
+
+    ind = find(alphaVec*1.5 > pi/2, 1); % possible negative signals - don't expect relative B1 > 1.5
+    if isempty(ind) % expects no negative signal intensities
+        p = NWpolyfitim(1, alphaVec, acos(images_sc));
         if nz>1
             B1map = p(:,:,:,1);
         else
             B1map = p(:,:,1);
         end
-        B1fit = NWpolyvalim(p,alphaInterp);
+        B1fit = cos( NWpolyvalim(p, alphaInterp) );
     else
-        imagesFlip = images_sc;        
-        for ii=1:length(ind)
+        % Sign ambiguity: try different crossing points, pick best per voxel
+        % Baseline: no sign correction
+        [p_best, S_best] = NWpolyfitim(1, alphaVec, acos(images_sc));
+
+        % Try negating from each possible crossing point onward
+        for jj = ind:length(alphaVec)
+            imagesFlip = images_sc;
             if nz>1
-                imagesFlip(:,:,:,ind+ii-1:end) = -images_sc(:,:,:,ind+ii-1:end);
+                imagesFlip(:,:,:,jj:end) = -images_sc(:,:,:,jj:end);
             else
-                imagesFlip(:,:,ind+ii-1:end) = -images_sc(:,:,ind+ii-1:end);
+                imagesFlip(:,:,jj:end) = -images_sc(:,:,jj:end);
             end
-            pTemp = NWpolyfitim(1,alphaVec,acos(imagesFlip));
+            [pTemp, STemp] = NWpolyfitim(1, alphaVec, acos(max(imagesFlip, -1)));
 
-
+            % Update voxels where this fit has lower residual
+            better = STemp.normr < S_best.normr;
+            if nz>1
+                for kk = 1:size(p_best, 4)
+                    temp = p_best(:,:,:,kk);
+                    tempNew = pTemp(:,:,:,kk);
+                    temp(better) = tempNew(better);
+                    p_best(:,:,:,kk) = temp;
+                end
+            else
+                for kk = 1:size(p_best, 3)
+                    temp = p_best(:,:,kk);
+                    tempNew = pTemp(:,:,kk);
+                    temp(better) = tempNew(better);
+                    p_best(:,:,kk) = temp;
+                end
+            end
+            S_best.normr(better) = STemp.normr(better);
         end
+
+        p = p_best;
+        if nz>1
+            B1map = p(:,:,:,1);
+        else
+            B1map = p(:,:,1);
+        end
+        B1fit = cos( NWpolyvalim(p, alphaInterp) );
     end
+
+    % Scale B1fit by first image to get absolute signal
+    if nz>1
+        B1fit = B1fit .* repmat(images(:,:,:,1), [1 1 1 nInterp]);
+    else
+        B1fit = B1fit .* repmat(images(:,:,1), [1 1 nInterp]);
+    end
+    pars = p;
 
 else
 
@@ -123,71 +174,118 @@ else
     lb = [0.7 0];
     ub = [2 3];
     par0 = [1.3 1];
+    npar = length(par0);
     options = optimset('Algorithm','trust-region-reflective', 'MaxIter', 100, 'MaxFunEvals', 200, 'TolFun',1e-3,'TolX',1e-6,'display', 'off');
 
+    % Reshape for parallel-friendly linear indexing
+    nVox = nx*ny*nz;
+    images_sc_vec = reshape(images_sc, nVox, []);
+    if nz>1
+        images_first = reshape(images(:,:,:,1), nVox, 1);
+    else
+        images_first = reshape(images(:,:,1), nVox, 1);
+    end
+    roimask_vec = roimask(:);
 
-    B1fit = zeros([size(roimask) nInterp]);
-    B1map = zeros(size(roimask));
-    pars = zeros([size(roimask) length(par0)]);
+    B1map_vec = zeros(nVox, 1);
+    pars_vec = zeros(nVox, npar);
+    B1fit_vec = zeros(nVox, nInterp);
 
-    for ii=1:nx*ny*nz
-        if nz>1
-            [x,y,z] = ind2sub([nx,ny,nz],ii);
-        else
-            [x,y] = ind2sub([nx,ny],ii);
-            z = 1;
+    % Check for parallel computing toolbox
+    doParFor = false;
+    try
+        checkParTool = canUseParallelPool;
+    catch
+        checkParTool = false;
+    end
+    if checkParTool
+        if ~isempty(gcp('nocreate')) || nz>1
+            doParFor = true;
         end
+    end
 
-        if roimask(x,y,z)==1
-            %do fit
-            if nz>1
-                tempVec = squeeze(images_sc(x,y,z,:));
-            else
-                tempVec = squeeze(images_sc(x,y,:));
+    if doParFor
+        parfor ii=1:nVox
+            if roimask_vec(ii)==1
+                tempVec = images_sc_vec(ii,:).';
+                [~,minInd] = min(tempVec);
+
+                % Min Signal is negative
+                tempVec1 = tempVec; tempVec1(minInd:end) = -tempVec(minInd:end);
+                par1 = lsqcurvefit(B1func,par0,alphaVec,tempVec1,lb,ub,options);
+                fitVec1 = B1func(par1,alphaVec);
+                gof1 = goodnessOfFit_(fitVec1,tempVec1,'MSE');
+
+                % Min Signal is positive
+                tempVec2 = -tempVec; tempVec2(1:minInd) = tempVec(1:minInd);
+                par2 = lsqcurvefit(B1func,par0,alphaVec,tempVec2,lb,ub,options);
+                fitVec2 = B1func(par2,alphaVec);
+                gof2 = goodnessOfFit_(fitVec2,tempVec2,'MSE');
+
+                % Nothing is negative
+                tempVec3 = tempVec;
+                par3 = lsqcurvefit(B1func,par0,alphaVec,tempVec3,lb,ub,options);
+                fitVec3 = B1func(par3,alphaVec);
+                gof3 = goodnessOfFit_(fitVec3,tempVec3,'MSE');
+
+                minGof = min([gof1 gof2 gof3]);
+                if minGof==gof1
+                    par = par1;
+                elseif minGof==gof2
+                    par = par2;
+                else
+                    par = par3;
+                end
+
+                B1fit_vec(ii,:) = B1func(par,alphaInterp(:)).' * images_first(ii);
+                B1map_vec(ii) = par(2);
+                pars_vec(ii,:) = par;
             end
-            tempVec = tempVec(:);
-            [~,minInd] = min(tempVec);
+        end
+    else
+        for ii=1:nVox
+            if roimask_vec(ii)==1
+                tempVec = images_sc_vec(ii,:).';
+                [~,minInd] = min(tempVec);
 
-            % Min Signal is negative
-            tempVec1 = tempVec; tempVec1(minInd:end) = -tempVec(minInd:end);
-            par1 = lsqcurvefit(B1func,par0,alphaVec,tempVec1,lb,ub,options); % uses previous iteration fitted parameters as next voxel initial guess
-            fitVec1 = B1func(par1,alphaVec);
-            gof1 = goodnessOfFit_(fitVec1,tempVec1,'MSE');
+                % Min Signal is negative
+                tempVec1 = tempVec; tempVec1(minInd:end) = -tempVec(minInd:end);
+                par1 = lsqcurvefit(B1func,par0,alphaVec,tempVec1,lb,ub,options);
+                fitVec1 = B1func(par1,alphaVec);
+                gof1 = goodnessOfFit_(fitVec1,tempVec1,'MSE');
 
-            % Min Signal is positive
-            tempVec2 = -tempVec; tempVec2(1:minInd) = tempVec(1:minInd);
-            par2 = lsqcurvefit(B1func,par0,alphaVec,tempVec2,lb,ub,options);
-            fitVec2 = B1func(par2,alphaVec);
-            gof2 = goodnessOfFit_(fitVec2,tempVec2,'MSE');
+                % Min Signal is positive
+                tempVec2 = -tempVec; tempVec2(1:minInd) = tempVec(1:minInd);
+                par2 = lsqcurvefit(B1func,par0,alphaVec,tempVec2,lb,ub,options);
+                fitVec2 = B1func(par2,alphaVec);
+                gof2 = goodnessOfFit_(fitVec2,tempVec2,'MSE');
 
-            % Nothing is negative - can be different from 2nd case for
-            % noisy data
-            tempVec3 = tempVec;
-            par3 = lsqcurvefit(B1func,par0,alphaVec,tempVec3,lb,ub,options);
-            fitVec3 = B1func(par3,alphaVec);
-            gof3 = goodnessOfFit_(fitVec3,tempVec3,'MSE');
+                % Nothing is negative
+                tempVec3 = tempVec;
+                par3 = lsqcurvefit(B1func,par0,alphaVec,tempVec3,lb,ub,options);
+                fitVec3 = B1func(par3,alphaVec);
+                gof3 = goodnessOfFit_(fitVec3,tempVec3,'MSE');
 
-            minGof = min([gof1 gof2 gof3]);
-            if minGof==gof1
-                par = par1;
-            elseif minGof==gof2
-                par = par2;
-            else
-                par = par3;
-            end
+                minGof = min([gof1 gof2 gof3]);
+                if minGof==gof1
+                    par = par1;
+                elseif minGof==gof2
+                    par = par2;
+                else
+                    par = par3;
+                end
 
-            fitVec = B1func(par,alphaInterp(:));
-            if nz>1
-                B1fit(x,y,z,:) = fitVec * images(x,y,z,1);
-                B1map(x,y,z) = par(2);
-                pars(x,y,z,:) = par;
-            else
-                B1fit(x,y,:) = fitVec * images(x,y,1);
-                B1map(x,y) = par(2);
-                pars(x,y,:) = par;
+                B1fit_vec(ii,:) = B1func(par,alphaInterp(:)).' * images_first(ii);
+                B1map_vec(ii) = par(2);
+                pars_vec(ii,:) = par;
             end
         end
     end
+
+    % Reshape outputs back to image dimensions
+    B1map = reshape(B1map_vec, size(roimask));
+    pars = reshape(pars_vec, [size(roimask) npar]);
+    B1fit = reshape(B1fit_vec, [size(roimask) nInterp]);
 
 end
 
