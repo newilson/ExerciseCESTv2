@@ -124,7 +124,7 @@ elseif ( contains( swversion, 'VD13D' ) || contains(swversion,'VE11') || contain
         WASSRpw1 = hdr.WIPlong(15);
         WASSRb1 = hdr.WIPlong(17);
         WASSRdc = hdr.WIPdbl(1);
-	elseif strcmp(seqname,'prep_tfl_FatSat')
+	elseif contains(seqname,'prep_tfl_FatSat')
         wipppmindex = 2;
         WASSRpw = hdr.WIPlong(11);
         WASSRpw1 = hdr.WIPlong(12);

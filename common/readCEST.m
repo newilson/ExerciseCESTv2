@@ -145,7 +145,7 @@ elseif ( contains( swversion, 'VD13D' ) || contains(swversion,'VE11') || contain
         CESTdc = hdr.WIPdbl(1);
         reqreps = hdr.WIPlong(10);
         mocoreps = hdr.WIPlong(11);
-    elseif strcmp(seqname,'prep_tfl_FatSat')
+    elseif contains(seqname,'prep_tfl_FatSat')
         wipppmindex = 2;
         prepmodeindex = nan;
         cestzvalue = 1e5;
@@ -153,7 +153,11 @@ elseif ( contains( swversion, 'VD13D' ) || contains(swversion,'VE11') || contain
         CESTpw1 = hdr.WIPlong(12);
         CESTb1 = hdr.WIPlong(14);
         CESTdc = hdr.WIPdbl(1);
-        reqreps = hdr.WIPlong(10);
+        if strcmp(seqname,'prep_tfl_FatSat_RSat_IRSat_FORef_FO')
+            reqreps = hdr.WIPlong(9);
+        else % not sure about this in general
+            reqreps = hdr.WIPlong(10);
+        end
         mocoreps = 1;  
     else
         wipppmindex = input(' Type in the value for wipppmindex : ');
